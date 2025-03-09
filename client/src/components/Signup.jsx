@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import Validation from "./SignupValidation";
 import axios from "axios";
 
-// import axios from "axios";
 function Signup() {
   const [values, setValues] = useState({
     name: "",
@@ -11,8 +10,10 @@ function Signup() {
     password: "",
   });
 
-  const navigate = useNavigate();
   const [errors, setErrors] = useState({});
+  const [successMessage, setSuccessMessage] = useState(""); // New state for success message
+  const [loading, setLoading] = useState(false); // To manage loading state
+  const navigate = useNavigate();
 
   const handleInput = (event) => {
     setValues((prev) => ({
@@ -25,20 +26,44 @@ function Signup() {
     event.preventDefault();
     setErrors(Validation(values));
 
-    if (errors.name === "" && errors.email === "" && errors.password === "") {
+    // Check if no errors exist before submitting the form
+    if (
+      !errors.name &&
+      !errors.email &&
+      !errors.password &&
+      values.name &&
+      values.email &&
+      values.password
+    ) {
+      setLoading(true); // Start loading
+
+      // Make POST request to backend
       axios
         .post("http://localhost:8001/signup", values)
         .then((res) => {
-          navigate("/");
+          setSuccessMessage("Signup successful! You can now login."); // Set success message
+          setLoading(false); // Stop loading
+
+          // Redirect after success
+          setTimeout(() => {
+            navigate("/"); // Redirect to login page after successful signup
+          }, 2000); // Add delay for user to see the success message
         })
-        .catch((err) => console.log(err));
+        .catch((err) => {
+          console.log(err);
+          setLoading(false); // Stop loading in case of error
+        });
     }
   };
+
   return (
     <div className="d-flex justify-content-center align-items-center bg-primary vh-100">
       <div className="bg-white p-3 rounded w-25">
         <h2>Sign-Up</h2>
-        <form action="" onSubmit={handleSubmit}>
+        {successMessage && (
+          <div className="alert alert-success">{successMessage}</div> // Show success message
+        )}
+        <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label htmlFor="name">
               <strong>Name</strong>
@@ -82,8 +107,12 @@ function Signup() {
               <span className="text-danger">{errors.password}</span>
             )}
           </div>
-          <button type="submit" className="btn btn-success w-100 rounded-0">
-            <strong>Sign Up</strong>
+          <button
+            type="submit"
+            className="btn btn-success w-100 rounded-0"
+            disabled={loading} // Disable button when loading
+          >
+            {loading ? "Signing up..." : <strong>Sign Up</strong>}
           </button>
           <p>You agree to our terms and policies.</p>
           <Link

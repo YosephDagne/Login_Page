@@ -8,8 +8,10 @@ function Login() {
     email: "",
     password: "",
   });
-  const navigate = useNavigate();
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const navigate = useNavigate();
 
   const handleInput = (e) => {
     const { name, value } = e.target;
@@ -19,24 +21,47 @@ function Login() {
   const handleSubmit = (event) => {
     event.preventDefault();
     setErrors(Validation(values));
-    if (errors.email === "" && errors.password === "") {
+
+    // Check if there are no errors before submitting
+    const noErrors = !errors.email && !errors.password;
+
+    if (noErrors && values.email && values.password) {
+      setLoading(true); // Set loading to true before making API request
       axios
         .post("http://localhost:8001/login", values)
         .then((res) => {
+          setLoading(false); // Stop loading after request
           if (res.data.message === "Login successful") {
+            // Store user info in localStorage or state if needed
+            localStorage.setItem("user", JSON.stringify(res.data.user)); // Example for storing user data
+
+            // Navigate to home or dashboard after login
             navigate("/home");
           } else {
-            alert("No record existed !");
+            setErrorMessage("Invalid credentials. Please try again.");
           }
         })
-        .catch((err) => console.log(err));
+        .catch((err) => {
+          setLoading(false); // Stop loading after request
+          console.log(err);
+          setErrorMessage("Something went wrong. Please try again.");
+        });
+    } else {
+      setErrorMessage("Please fill in all fields correctly.");
     }
   };
+
   return (
     <div className="d-flex justify-content-center align-items-center bg-primary vh-100">
       <div className="bg-white p-3 rounded w-25">
         <h2>Sign-In</h2>
-        <form action="" onSubmit={handleSubmit}>
+
+        {/* Show error message */}
+        {errorMessage && (
+          <div className="alert alert-danger">{errorMessage}</div>
+        )}
+
+        <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label htmlFor="email">
               <strong>Email</strong>
@@ -49,11 +74,11 @@ function Login() {
               onChange={handleInput}
               className="form-control rounded-0"
             />
-
             {errors.email && (
               <span className="text-danger">{errors.email}</span>
             )}
           </div>
+
           <div className="mb-3">
             <label htmlFor="password">
               <strong>Password</strong>
@@ -70,10 +95,17 @@ function Login() {
               <span className="text-danger">{errors.password}</span>
             )}
           </div>
-          <button type="submit" className="btn btn-success w-100 rounded-0">
-            <strong>Log in</strong>
+
+          <button
+            type="submit"
+            className="btn btn-success w-100 rounded-0"
+            disabled={loading} // Disable button while loading
+          >
+            {loading ? "Logging in..." : <strong>Log in</strong>}
           </button>
+
           <p>You agree to our terms and policies.</p>
+
           <Link
             to="/signup"
             className="btn btn-default border w-100 bg-light rounded-0 text-decoration-none"
